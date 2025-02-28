@@ -2,12 +2,16 @@ package com.prazjain;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
@@ -33,6 +37,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 import org.yaml.snakeyaml.error.YAMLException;
@@ -168,9 +173,22 @@ public class FileProcessorMojo
 
     private void checkYamlCorrectness(File inputFile) throws MojoExecutionException {
         try (FileInputStream fis = new FileInputStream(inputFile)) {
-            Yaml yaml = new Yaml();
+            DumperOptions options = new DumperOptions();
+            options.setIndent(2);
+            options.setPrettyFlow(true);
+            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+            Yaml yaml = new Yaml(options);
             try {
-                yaml.load(fis);
+                Map<String, Object> map = yaml.load(fis);
+                Map<String, Object> newObj = new LinkedHashMap<>();
+                newObj.put("greeting", "Hej");
+                map.put("topLevel3", newObj);
+                StringWriter writer = new StringWriter();
+                yaml.dump(map, writer);
+                try (FileWriter fileWriter = new FileWriter(output)) {
+                    fileWriter.write(writer.toString());
+                }
+                System.out.println(writer.toString());
             } catch (YAMLException e) {
                 throw new MojoExecutionException("Invalid YAML syntax in input file", e);
             }
